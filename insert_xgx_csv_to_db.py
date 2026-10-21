@@ -1,5 +1,6 @@
 import csv
 import sqlite3
+import subprocess
 from ftplib import FTP
 from io import BytesIO, TextIOWrapper
 from pathlib import Path
@@ -13,7 +14,8 @@ USER = "Administrator"
 PASSWORD = "0000"
 TARGET_DIR = "/SD2/xg/result"
 
-DB_FILE = "xgx_inspection_data.db"
+WIFI_INTERFACE = "Wi-Fi"
+
 TABLE_NAME = "result"
 
 DATETIME_COLUMNS = {
@@ -26,7 +28,38 @@ DATETIME_COLUMNS = {
 }
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / DB_FILE
+DATA_DIR = BASE_DIR / "data"
+
+# -------------------------------------
+#  Get connected SSID
+# -------------------------------------
+def get_connected_ssid():
+    result = subprocess.run(
+        ["netsh", "wlan", "show", "interface", f"name={WIFI_INTERFACE}"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+
+    for line in result.stdout.splitlines():
+        line = line.strip()
+
+        if line.startswith("SSID"):
+            return line.split(":", 1)[1].strip().lower()
+
+    raise RuntimeError(f"{WIFI_INTERFACE}のSSIDを取得できません")
+
+
+# -------------------------------------
+#  Get database path
+# -------------------------------------
+def get_db_path(ssid):
+    DATA_DIR.mkdir(exist_ok=True)
+
+    db_file = f"{ssid}_xgx_inspection.db"
+    db_path = DATA_DIR / db_file
+
+    return db_path
 
 
 # -------------------------------------
@@ -141,6 +174,9 @@ def insert_csv_to_db(conn, csv_data, file_name):
 #  Main
 # -------------------------------------
 def main():
+    ssid = get_connected_ssid()
+    db_path = get_db_path(ssid)
+
     with FTP(HOST) as ftp:
         ftp.login(USER, PASSWORD)
         print(ftp.getwelcome())
@@ -150,7 +186,7 @@ def main():
         if not csv_files:
             raise FileNotFoundError("CSVファイルがありません")
 
-        with sqlite3.connect(DB_PATH) as conn:
+        with sqlite3.connect(db_path) as conn:
             for file_name in csv_files:
                 remote_path = f"{TARGET_DIR}/{file_name}"
 
@@ -173,7 +209,8 @@ def main():
                 ftp.delete(remote_path)
                 print("Deleted  :", file_name)
 
-        print("Database :", DB_PATH)
+        print("SSID     :", ssid)
+        print("Database :", db_path)
         print("Table    :", TABLE_NAME)
 
 
