@@ -1,2 +1,6 @@
 pyautogui
 Pillow
+pandas
+matplotlib
+jupyter
+ipykernel
