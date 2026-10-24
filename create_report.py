@@ -80,6 +80,21 @@ def select_db_file():
         print("正しい番号を入力してください")
 
 
+def confirm_csv_output():
+    while True:
+        value = input("CSVファイルを出力しますか？ [y/N]: ")
+        value = value.strip().lower()
+
+        if value == "y":
+            return True
+
+        if value in ("", "n"):
+            return False
+
+        print("Y または N を入力してください")
+
+
+
 # ================================================
 #   Select database
 # ================================================
@@ -99,6 +114,8 @@ end_datetime = normalize_datetime(
     datetime.max.time().replace(microsecond=0),
 )
 
+csv_output = confirm_csv_output()
+
 start_datetime_text = datetime.strptime(
     start_datetime,
     "%Y-%m-%d %H:%M:%S",
@@ -109,10 +126,13 @@ end_datetime_text = datetime.strptime(
     "%Y-%m-%d %H:%M:%S",
 ).strftime("%Y%m%d_%H%M%S")
 
-output_html_path = (
-    DESKTOP_PATH
-    / f"xgx_data_analysis_{start_datetime_text}_{end_datetime_text}.html"
+output_file_name = (
+    f"xgx_data_analysis_"
+    f"{start_datetime_text}_{end_datetime_text}"
 )
+
+output_html_path = DESKTOP_PATH / f"{output_file_name}.html"
+output_csv_path = DESKTOP_PATH / f"{output_file_name}.csv"
 
 
 # ================================================
@@ -128,6 +148,8 @@ pm.execute_notebook(
     parameters={
         "START_DATETIME": start_datetime,
         "END_DATETIME": end_datetime,
+        "CSV_OUTPUT": csv_output,
+        "CSV_FILE": str(output_csv_path),
     },
 )
 

@@ -150,6 +150,16 @@ def insert_csv_to_db(conn, csv_data, file_name):
 
         conn.execute(create_sql)
 
+        # measured_atにインデックスを作成
+        conn.execute(
+            f'CREATE INDEX IF NOT EXISTS '
+            f'idx_{TABLE_NAME}_measured_at '
+            f'ON "{TABLE_NAME}" (measured_at)'
+        )
+
+        inserted_count = 0
+        skipped_count = 0
+
         # CSVデータをDBへ登録
         for row in reader:
             measured_at = (
@@ -167,7 +177,14 @@ def insert_csv_to_db(conn, csv_data, file_name):
                 for column in data_columns
             ]
 
-            conn.execute(insert_sql, values)
+            cursor = conn.execute(insert_sql, values)
+
+            if cursor.rowcount == 1:
+                inserted_count += 1
+            else:
+                skipped_count += 1
+
+        return inserted_count, skipped_count
 
 
 # -------------------------------------
@@ -195,7 +212,7 @@ def main():
                     remote_path,
                 )
 
-                insert_csv_to_db(
+                inserted_count, skipped_count = insert_csv_to_db(
                     conn,
                     csv_data,
                     file_name,
@@ -203,7 +220,9 @@ def main():
 
                 # このCSVのDB登録を確定
                 conn.commit()
-                print("Inserted :", file_name)
+                print("File     :", file_name)
+                print("Inserted :", inserted_count)
+                print("Skipped  :", skipped_count)
 
                 # DB登録成功後にXG-X側CSVを削除
                 ftp.delete(remote_path)
