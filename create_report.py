@@ -146,6 +146,7 @@ pm.execute_notebook(
     NOTEBOOK_PATH,
     OUTPUT_NOTEBOOK_PATH,
     parameters={
+        "DB_FILE": str(db_file),
         "START_DATETIME": start_datetime,
         "END_DATETIME": end_datetime,
         "CSV_OUTPUT": csv_output,
